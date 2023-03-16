@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import HomeView from '../views/HomeView.vue'
+import HomeView from '@/views/HomeView.vue';
+import FavoritesView from '@/views/FavoritesView.vue';
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -7,17 +8,24 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView
+      component: HomeView,
+      meta: {
+        title: 'Home'
+      }
     },
     {
-      path: '/about',
-      name: 'about',
-      // route level code-splitting
-      // this generates a separate chunk (About.[hash].js) for this route
-      // which is lazy-loaded when the route is visited.
-      component: () => import('../views/AboutView.vue')
+      path: '/favorites',
+      name: 'favorites',
+      component: FavoritesView,
+      meta: {
+        title: 'Favorites'
+      }
     }
   ]
-})
+});
 
-export default router
+router.beforeEach(async (to) => {
+  document.title = `${to.meta.title} | Panda Weather`;
+});
+
+export default router;
