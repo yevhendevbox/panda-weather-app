@@ -68,6 +68,7 @@ export const useCitiesStore = defineStore('citiesStore', {
     },
     async setDefaultCity() {
       if (this.cities.length > 1) return;
+      if (!localStorage.getItem('location')) return;
       const response = await getDefaultCity('Kyiv');
 
       const newEntry = {

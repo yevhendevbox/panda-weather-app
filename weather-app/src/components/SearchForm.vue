@@ -6,7 +6,7 @@
     <div class="search-form__input">
       <input type="text" placeholder="Search for a city" v-model="city.name" @input="searchCity"
       :disabled="route.name === 'favorites'">
-      <button>
+      <button v-show="route.name !== 'favorites'">
         <i class="material-icons" @click="addCity(city.geometry)">add</i>
       </button>
     </div>
