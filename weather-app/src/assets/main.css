@@ -12,6 +12,10 @@ Main Styles
   width: 100%;
   left: -2px;
 }
+canvas {
+  max-width: 100%;
+  height: auto;
+}
 header {
   padding: 1em 0;
   background-color: var(--gray-1);
@@ -124,7 +128,7 @@ header {
 }
 .main-section {
   flex-wrap: wrap;
-  padding-top: 4em;
+  padding: 4em 0;
 }
 .weather-card {
   gap: 1em;
@@ -145,6 +149,7 @@ header {
   list-style: none;
 }
 .weather-card--icon {
+  min-height: 100px;
   max-width: 130px;
 }
 .weather-card--icon img {

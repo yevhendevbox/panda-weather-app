@@ -7,22 +7,57 @@ export const HTTP = axios.create({
   }
 });
 
-export const getCities = async (city) => {
-  if (city.length < 3) return;
+export const CITIES_LIST = axios.create({
+  baseURL: 'https://api.opencagedata.com/geocode/v1/json',
+  headers: {
+    'Content-Type': 'application/json',
+  }
+});
 
+export const getDefaultCity = async (city) => {
   try {
-    const response = await HTTP.get('find', {
+    const response = await HTTP.get('weather', {
           params: {
             q: city,
-            type: 'like',
-            sort: 'population',
-            cnt: 10,
-            appid: `${import.meta.env.VITE_API_KEY}`
+            appid: `${import.meta.env.VITE_API_KEY}`,
+            units: 'metric'
           }
         });
-    return response.data.list;
+    return response;
   } catch (error) {
    console.log(error, 'Something went wrong, with query for cities list');
+  }
+}
+
+export const getCitiesByChanks = async (city) => {
+  try {
+    const response = CITIES_LIST.get('', {
+      params: {
+        q: city,
+        key: `${import.meta.env.VITE_OPENCAGE_API_KEY}`,
+        limit: 10,
+        min_confidence: 3
+      }
+    });
+    return response;
+  } catch (error) {
+    console.log(error, 'Something went wrong, with query for cities list');
+  }
+}
+
+export const getCityByLoc = async (lat, lon) => {
+  try {
+    const response = HTTP.get('weather', {
+      params: {
+        lat: lat,
+        lon: lon,
+        appid: `${import.meta.env.VITE_API_KEY}`,
+        units: 'metric'
+      },
+    })
+    return response;
+  } catch (error) {
+    console.log(error, 'Something went wrong, when query for a city');
   }
 }
 
@@ -45,16 +80,6 @@ export const getCityForecastData = async (city) => {
       }
     })
     return response;
-  } catch (error) {
-    console.log(error, 'Something went wrong, on forecast query');
-  }
-}
-
-export const getCityDayliTemp = async (lat, lon) => {
-  try {
-    const response = await axios.get(`https://pro.openweathermap.org/data/2.5/
-    forecast/hourly?lat=${lat}&lon=${lon}&appid=${import.meta.env.VITE_API_KEY}`);
-    return response.data;
   } catch (error) {
     console.log(error, 'Something went wrong, on forecast query');
   }

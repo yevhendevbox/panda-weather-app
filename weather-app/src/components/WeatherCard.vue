@@ -27,9 +27,13 @@
       </div>
       <div class="weather-card__actions">
         <div>
-          <button class="btn graph-btn">
+          <button
+            :class="{active: isChartOpen}"
+            class="btn graph-btn"
+            @click="showChart(city.data ? city.data.name : city.name)"
+            >
             <i class="material-icons">query_stats</i>
-            <span>hourly graph</span>
+            <span>1 day temp</span>
           </button>
         </div>
         <div>
@@ -66,23 +70,38 @@ export default {
   components: {
     ModalWindow,
   },
+  emits: {
+    'show-chart': null,
+  },
   props: {
     city: {
       required: true,
       type: Object,
     }
   },
-  setup () {
+  setup (props, { emit }) {
     const buildIconURL = buildWeatherIconURL;
     const citiesStore = useCitiesStore();
     const showModal = ref(false);
+    const isChartOpen = ref(false);
+
+    const showChart = (city) => {
+      if (isChartOpen.value) {
+        isChartOpen.value = false;
+        emit('show-chart', isChartOpen.value);
+        return;
+      }
+      isChartOpen.value = !isChartOpen.value;
+      citiesStore.setForecastData(city);
+      emit('show-chart', isChartOpen.value);
+    };
 
     const removeCityCard = (id) => {
       showModal.value = false;
       citiesStore.removeCity(id);
     }
 
-    return { buildIconURL, citiesStore, showModal, removeCityCard }
+    return { buildIconURL, citiesStore, showModal, removeCityCard, showChart, isChartOpen }
   }
 }
 </script>

@@ -4,21 +4,22 @@
   </modal-window>
   <div class="search-form">
     <div class="search-form__input">
-      <input type="text" placeholder="Search for a city" v-model="city" @input="searchCity"
+      <input type="text" placeholder="Search for a city" v-model="city.name" @input="searchCity"
       :disabled="route.name === 'favorites'">
       <button>
-        <i class="material-icons">add</i>
+        <i class="material-icons" @click="addCity(city.geometry)">add</i>
       </button>
     </div>
-    <ul class="search-form__list" v-show="city">
+    <ul class="search-form__list" v-show="autocomplete.length">
       <li
-        v-for="city in searchedCities"
-        :key="city.id"
-        @click="addCity(city.id)"
-        @keyup.enter="addCity(city.id)"
+        v-for="(city, index) in autocomplete"
+        :key="index"
+        @click="fillSearchInput(city)"
+        @keyup.enter="fillSearchInput(city)"
         tabindex="0"
       >
-      {{ city.name }}, {{ city.sys.country }}
+      {{ city.name }}, {{ city.country }}
+      <!-- {{ city.sys.country }} -->
       </li>
     </ul>
   </div>
@@ -26,10 +27,10 @@
 
 <script>
 import { ref, computed } from 'vue';
-import { getCities } from '@/core/api.js';
 import { useCitiesStore } from '../stores/CitiesStore';
 import ModalWindow from '@/components/ModalWindow.vue';
 import { useRoute } from 'vue-router';
+import { storeToRefs } from 'pinia';
 
 export default {
   name: 'SearchForm',
@@ -37,9 +38,13 @@ export default {
     ModalWindow,
   },
   setup () {
-    const city = ref('');
-    const searchedCities = ref([]);
+    const city = ref({
+            name: '',
+            geometry: {},
+            country: '',
+          });
     const citiesStore = useCitiesStore();
+    const { autocomplete } = storeToRefs(citiesStore);
     const route = useRoute();
     const cities = computed(() => {
       return citiesStore.getCitiesLength;
@@ -47,22 +52,39 @@ export default {
     const showModal = ref(false);
 
     const searchCity = async () => {
-      const list = await getCities(city.value);
-      searchedCities.value = list;
+      if (city.value.name.length < 3) return;
+      citiesStore.setCitiesList(city.value.name);
+    }
+    const fillSearchInput = (cityToAdd) => {
+      city.value = cityToAdd;
+      citiesStore.cleanAutocomplete();
     }
 
-    const addCity = (id) => {
+    const addCity = (cityGeo) => {
       if (cities.value >= 5) {
         city.value = '';
         showModal.value = true;
         return;
       }
-      citiesStore.setPickedCity(id);
-      city.value = '';
-      searchedCities.value = [];
+      citiesStore.setPickedCity(cityGeo);
+      city.value = {
+        name: '',
+        geometry: {},
+        country: '',
+      };
     }
 
-    return { city, cities, searchedCities, searchCity, addCity, citiesStore, showModal, route }
+    return {
+      city,
+      cities,
+      autocomplete,
+      searchCity,
+      fillSearchInput,
+      addCity,
+      citiesStore,
+      showModal,
+      route
+    }
   }
 }
 </script>

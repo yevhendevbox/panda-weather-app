@@ -1,17 +1,12 @@
 import { defineStore } from 'pinia';
-import { getCityById, getCityForecastData, multipleCitiesQuery } from '@/core/api';
+import { getCityForecastData, multipleCitiesQuery, getCitiesByChanks, getCityByLoc, getDefaultCity } from '@/core/api';
 
 export const useCitiesStore = defineStore('citiesStore', {
   state: () => ({
     cities: [],
-    cityForecast: {
-      labels: [],
-      temperature: [],
-    },
-    hourlyTemp: {
-      labeles: [],
-      temperature: [],
-    },
+    hourlyTemp: [],
+    autocomplete: [],
+    isLoading: false,
   }),
   getters: {
     getCurrentCity() {
@@ -25,33 +20,97 @@ export const useCitiesStore = defineStore('citiesStore', {
     },
     getCityForecast() {
       return this.cityForecast;
+    },
+    getHourlyTemp() {
+      return this.hourlyTemp;
     }
   },
   actions: {
-    async setPickedCity(id) {
-      const currentCity = await getCityById(id);
+    async setPickedCity(cityGeo) {
+      const currentCity = await getCityByLoc(cityGeo.lat, cityGeo.lng);
+      if (this.cities.some(item => item.data ?
+         item.data.id === currentCity.data.id : item.id === currentCity.data.id)) return;
+
       const newEntry = {
         isFav: false,
+        today: this.setTodayDate(),
         ... currentCity,
       }
       this.cities.push(newEntry);
     },
     async setForecastData(city) {
       const response = await getCityForecastData(city);
-      const week = response.data.list.splice(0, 40);
-      week.forEach(day => {
-        this.cityForecast.labels.push(day.dt_txt);
-        this.cityForecast.temperature.push(Math.floor(day.main.temp));
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = ('0' + (now.getMonth() + 1)).slice(-2);
+      const day = ('0' + now.getDate()).slice(-2);
+      const formatedDate = `${year}-${month}-${day}`;
+
+      const todaysWeatherByHours = response.data.list.filter(item => {
+        if (item.dt_txt.split(' ')[0] === formatedDate) {
+          return item;
+        }
       });
-      console.log(this.cityForecast);
+      todaysWeatherByHours.forEach(item => {
+        this.hourlyTemp.push({ label: item.dt_txt.split(' ')[1], temperature: Math.floor(item.main.temp)});
+      });
     },
-    // async getHourlyDayTemp(lat, lon) {
-    //   console.log(lat, lon);
-    //   const response = await getCityDayliTemp(lat, lon);
-    //   this.hourlyTemp.temperature = response.hourly.slice(0, 24).map(item => Math.floor(item.temp));
-    //   this.hourlyTemp.labeles = response.hourly.slice(0, 24).map(item => new Date(item.dt * 1000)
-    //     .toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }));
-    // },
+    async setCitiesList(city) {
+      const response = await getCitiesByChanks(city);
+        const list = response.data.results.map(city => {
+          return {
+            name: city.formatted.split(',')[0],
+            geometry: city.geometry,
+            country: city.components.country,
+          }
+        });
+        this.autocomplete = list;
+    },
+    async setDefaultCity() {
+      if (this.cities.length > 1) return;
+      const response = await getDefaultCity('Kyiv');
+
+      const newEntry = {
+        isFav: false,
+        today: this.setTodayDate(),
+        ... response,
+      }
+      this.cities.push(newEntry);
+    },
+    cleanAutocomplete() {
+      this.autocomplete = [];
+    },
+
+    async setUserLocationCity() {
+      if (!localStorage.getItem('location')) {
+        this.isLoading = true;
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const currentCity = await getCityByLoc(lat, lon);
+
+          if (this.cities.some(item => item.data ?
+            item.data.id === currentCity.data.id : item.id === currentCity.data.id)) return;
+
+          const newEntry = {
+            isFav: false,
+            ... currentCity,
+          }
+          this.cities.push(newEntry);
+          localStorage.setItem('location', true);
+          this.isLoading = false;
+      });
+    }
+  },
+  setTodayDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = ('0' + (now.getMonth() + 1)).slice(-2);
+    const day = ('0' + now.getDate()).slice(-2);
+    const formatedDate = `${year}-${month}-${day}`;
+    this.today = formatedDate;
+  },
+
     toggleFavorite(id) {
       const entry = this.cities.find(city => {
         return city.data ? city.data.id === id : city.id === id;
